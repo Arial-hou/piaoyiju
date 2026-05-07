@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>漂居 - 城市漂泊青年的决策伙伴</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <!-- React & ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#ECFDF5',
+              100: '#D1FAE5',
+              200: '#A7F3D0',
+              300: '#6EE7B7',
+              400: '#34D399',
+              500: '#10B981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065F46',
+              900: '#064E3B'
+            },
+            stone: {
+              50: '#FAFAF9',
+              100: '#F5F5F4',
+              200: '#E7E5E4',
+              300: '#D6D3D1',
+              400: '#A8A29E',
+              500: '#78716C',
+              600: '#57534E',
+              700: '#44403C',
+              800: '#292524',
+              900: '#1C1917'
+            },
+            emerald: {
+              50: '#ECFDF5',
+              100: '#D1FAE5',
+              200: '#A7F3D0',
+              300: '#6EE7B7',
+              400: '#34D399',
+              500: '#10B981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065F46',
+              900: '#064E3B'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* 自定义动画 */
+    @keyframes countUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .count-up {
+      animation: countUp 1s ease-out forwards;
+    }
+    /* 圆环动画 */
+    .circle-progress {
+      transition: stroke-dashoffset 1.5s ease-out;
+    }
+    /* 骨架屏动画 */
+    @keyframes shimmer {
+      0% { background-position: -468px 0; }
+      100% { background-position: 468px 0; }
+    }
+    .shimmer {
+      animation: shimmer 1.5s infinite linear;
+      background: linear-gradient(to right, #f0f0f0 4%, #e0e0e0 25%, #f0f0f0 36%);
+      background-size: 800px 104px;
+    }
+    /* 卡片悬停效果 */
+    .card-hover {
+      transition: all 0.3s ease;
+    }
+    .card-hover:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    /* 按钮点击效果 */
+    .btn-press:active {
+      transform: scale(0.95);
+    }
+    /* 淡入动画 */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in {
+      animation: fadeIn 0.3s ease-out forwards;
+    }
+    /* 数字滚动动画 */
+    @keyframes numberScroll {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body class="bg-stone-50 min-h-screen">
+  <div id="root"></div>
+  
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // ==================== 工具函数 ====================
+    
+    // 数字滚动动画
+    function useCountUp(end, duration = 1500) {
+      const [count, setCount] = useState(0);
+      const [isAnimating, setIsAnimating] = useState(false);
+      
+      useEffect(() => {
+        if (isAnimating) {
+          let startTime = null;
+          const animate = (currentTime) => {
+            if (!startTime) startTime = currentTime;
+            const progress = Math.min((currentTime - startTime) / duration, 1);
+            setCount(Math.floor(progress * end));
+            if (progress < 1) {
+              requestAnimationFrame(animate);
+            }
+          };
+          requestAnimationFrame(animate);
+        }
+      }, [isAnimating, end, duration]);
+      
+      return [count, () => setIsAnimating(true)];
+    }
+
+    // ==================== SVG图标组件 ====================
+    
+    function IconHome() {
+      return (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      );
+    }
+
+    function IconShoppingCart() {
+      return (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      );
+    }
+
+    function IconRefreshCw() {
+      return (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      );
+    }
+
+    function IconPackage() {
+      return (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+        </svg>
+      );
+    }
+
+    function IconCalculator() {
+      return (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+        </svg>
+      );
+    }
+
+    function IconSparkles() {
+      return (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+        </svg>
+      );
+    }
+
+    function IconHeart() {
+      return (
+        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+      );
+    }
+
+    function IconTrendingUp() {
+      return (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+        </svg>
+      );
+    }
+
+    function IconAlertCircle() {
+      return (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      );
+    }
+
+    function IconCopy() {
+      return (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+      );
+    }
+
+    function IconCheck() {
+      return (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+      );
+    }
+
+    function IconChevronLeft() {
+      return (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+      );
+    }
+
+    // ==================== 主应用组件 ====================
+    function App() {
+      const [currentView, setCurrentView] = useState('home');
+
+      return (
+        <div className="max-w-md mx-auto min-h-screen bg-stone-50 px-4 py-6">
+          {currentView === 'home' && (
+            <HomePage key="home" setCurrentView={setCurrentView} />
+          )}
+          {currentView === 'recommend' && (
+            <RecommendPage key="recommend" setCurrentView={setCurrentView} />
+          )}
+          {currentView === 'buyOrRent' && (
+            <BuyOrRentPage key="buyOrRent" setCurrentView={setCurrentView} />
+          )}
+          {currentView === 'moving' && (
+            <MovingPage key="moving" setCurrentView={setCurrentView} />
+          )}
+        </div>
+      );
+    }
+
+    // ==================== 首页 ====================
+    function HomePage({ setCurrentView }) {
+      const [count, startCount] = useCountUp(73);
+      const hasAnimated = useRef(false);
+      
+      useEffect(() => {
+        if (!hasAnimated.current) {
+          hasAnimated.current = true;
+          setTimeout(() => startCount(), 500);
+        }
+      }, []);
+
+      return (
+        <div className="fade-in">
+          {/* 顶部标题 */}
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-stone-900 mb-2">漂居</h1>
+            <p className="text-stone-500">城市漂泊青年的决策伙伴</p>
+          </div>
+
+          {/* 圆环指标 */}
+          <div className="flex justify-center mb-8">
+            <div className="relative">
+              <svg className="w-48 h-48 transform -rotate-90">
+                <circle
+                  cx="96"
+                  cy="96"
+                  r="85"
+                  stroke="#E7E5E4"
+                  strokeWidth="12"
+                  fill="none"
+                />
+                <circle
+                  cx="96"
+                  cy="96"
+                  r="85"
+                  stroke="#10B981"
+                  strokeWidth="12"
+                  fill="none"
+                  strokeDasharray={534}
+                  strokeDashoffset={534 - (534 * count) / 100}
+                  className="circle-progress"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <div className="text-4xl font-bold text-stone-900">{count}</div>
+                <div className="text-sm text-stone-500">漂居指数</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 三个指标 */}
+          <div className="flex justify-around mb-8 text-center">
+            <div>
+              <div className="text-2xl font-bold text-emerald-600">85</div>
+              <div className="text-xs text-stone-500">稳定度</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-amber-600">60</div>
+              <div className="text-xs text-stone-500">归属感</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-blue-600">75</div>
+              <div className="text-xs text-stone-500">经济感</div>
+            </div>
+          </div>
+
+          {/* 功能卡片 */}
+          <div className="space-y-4 mb-8">
+            <button
+              onClick={() => setCurrentView('recommend')}
+              className="w-full bg-white rounded-2xl p-5 shadow-sm card-hover btn-press text-left flex items-center justify-between"
+            >
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-2xl">
+                  🛒
+                </div>
+                <div>
+                  <div className="font-semibold text-stone-900">好物推荐</div>
+                  <div className="text-sm text-stone-500">帮你决定买什么</div>
+                </div>
+              </div>
+              <div className="text-stone-400">→</div>
+            </button>
+
+            <button
+              onClick={() => setCurrentView('buyOrRent')}
+              className="w-full bg-white rounded-2xl p-5 shadow-sm card-hover btn-press text-left flex items-center justify-between"
+            >
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center text-2xl">
+                  🔄
+                </div>
+                <div>
+                  <div className="font-semibold text-stone-900">买or租</div>
+                  <div className="text-sm text-stone-500">低频大件怎么办</div>
+                </div>
+              </div>
+              <div className="text-stone-400">→</div>
+            </button>
+
+            <button
+              onClick={() => setCurrentView('moving')}
+              className="w-full bg-white rounded-2xl p-5 shadow-sm card-hover btn-press text-left flex items-center justify-between"
+            >
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-rose-100 rounded-xl flex items-center justify-center text-2xl">
+                  📦
+                </div>
+                <div>
+                  <div className="font-semibold text-stone-900">搬家转卖</div>
+                  <div className="text-sm text-stone-500">一键生成闲鱼文案</div>
+                </div>
+              </div>
+              <div className="text-stone-400">→</div>
+            </button>
+          </div>
+
+          {/* 底部文字 */}
+          <div className="text-center text-xs text-stone-400">
+            漂泊不是过渡，而是一种生活方式。
+          </div>
+        </div>
+      );
+    }
+
+    // ==================== 好物推荐页面 ====================
+    function RecommendPage({ setCurrentView }) {
+      const [rentMonths, setRentMonths] = useState(12);
+      const [roomType, setRoomType] = useState('single');
+      const [budget, setBudget] = useState(3000);
+      const [habits, setHabits] = useState([]);
+      const [customHabits, setCustomHabits] = useState([]);
+      const [customHabitInput, setCustomHabitInput] = useState('');
+      const [recommendations, setRecommendations] = useState(null);
+      const [loading, setLoading] = useState(false);
+
+      const defaultHabits = [
+        { id: 'cook', label: '做饭', icon: '🍳' },
+        { id: 'fitness', label: '健身', icon: '💪' },
+        { id: 'work', label: '办公', icon: '💼' },
+        { id: 'movie', label: '追剧', icon: '📺' },
+        { id: 'game', label: '游戏', icon: '🎮' },
+        { id: 'social', label: '社交', icon: '🎉' },
+        { id: 'camp', label: '露营', icon: '⛺' },
+      ];
+
+      const allHabits = [...defaultHabits, ...customHabits.map(h => ({ id: h, label: h, icon: '✨' }))];
+
+      const toggleHabit = (id) => {
+        setHabits(prev => 
+          prev.includes(id) ? prev.filter(h => h !== id) : [...prev, id]
+        );
+      };
+
+      const addCustomHabit = () => {
+        if (customHabitInput.trim() && !customHabits.includes(customHabitInput.trim())) {
+          setCustomHabits([...customHabits, customHabitInput.trim()]);
+          setHabits([...habits, customHabitInput.trim()]);
+          setCustomHabitInput('');
+        }
+      };
+
+      // 根据输入生成推荐
+      const generateRecommendations = () => {
+        const items = {
+          mustBuy: [],
+          maybeBuy: [],
+          avoid: []
+        };
+
+        // 必买物品
+        items.mustBuy = [
+          { emoji: '🛏️', name: '乳胶床垫', price: 800, reason: '租房必备，睡眠质量决定生活质量' },
+          { emoji: '💡', name: '护眼台灯', price: 200, reason: '保护视力，提升居家幸福感' },
+          { emoji: '📦', name: '收纳箱组', price: 150, reason: '小空间必备，让生活井井有条' },
+          { emoji: '🧹', name: '扫地机器人', price: 1200, reason: '解放双手，租房也要品质生活' },
+          { emoji: '🔌', name: '插排', price: 80, reason: '老房子插座不够用，必备神器' },
+        ];
+
+        // 根据习惯添加必买物品
+        if (habits.includes('cook')) {
+          items.mustBuy.push({ emoji: '🍳', name: '电磁炉', price: 300, reason: '做饭神器，搬家方便带走' });
+        }
+        if (habits.includes('work')) {
+          items.mustBuy.push({ emoji: '🖥️', name: '显示器支架', price: 200, reason: '保护颈椎，提升工作效率' });
+        }
+        if (habits.includes('movie')) {
+          items.mustBuy.push({ emoji: '📺', name: '投影仪', price: 2000, reason: '小空间也能享受大屏体验' });
+        }
+
+        // 可买物品
+        items.maybeBuy = [
+          { emoji: '🛋️', name: '懒人沙发', price: 500, reason: budget > 3000 ? '预算充足，可以考虑' : '提升舒适度，看预算决定' },
+          { emoji: '🌿', name: '空气净化器', price: 800, reason: rentMonths > 12 ? '租期长，值得投资' : '短期租房可以先不买' },
+          { emoji: '☕', name: '咖啡机', price: 600, reason: habits.includes('work') ? '办公族必备' : '提升生活品质' },
+        ];
+
+        if (habits.includes('fitness')) {
+          items.maybeBuy.push({ emoji: '🏋️', name: '哑铃套装', price: 400, reason: '在家健身，省健身房钱' });
+        }
+
+        // 避雷物品
+        items.avoid = [
+          { emoji: '🧊', name: '大型冰箱', price: 3000, reason: '房东通常会配，买了难搬走' },
+          { emoji: '🧺', name: '大型洗衣机', price: 2500, reason: '搬家成本高，很多房东会配' },
+        ];
+
+        if (rentMonths < 6) {
+          items.avoid.push({ emoji: '🛏️', name: '实木床架', price: 1500, reason: '租期太短，买了就是负担' });
+          items.avoid.push({ emoji: '🪑', name: '大型家具', price: 1000, reason: '短期租房，搬家成本大于使用价值' });
+        } else {
+          items.avoid.push({ emoji: '🎨', name: '墙面装饰', price: 300, reason: '房东可能不让钉，不划算' });
+        }
+
+        if (budget < 2000) {
+          items.avoid.push({ emoji: '🎮', name: '游戏主机', price: 3000, reason: '预算紧张，先满足基本需求' });
+        }
+
+        return items;
+      };
+
+      const handleGenerate = () => {
+        setLoading(true);
+        setRecommendations(null);
+        setTimeout(() => {
+          setRecommendations(generateRecommendations());
+          setLoading(false);
+        }, 1500);
+      };
+
+      return (
+        <div className="fade-in">
+          {/* 头部 */}
+          <div className="flex items-center mb-6">
+            <button onClick={() => setCurrentView('home')} className="mr-3 text-stone-400 btn-press">
+              <IconChevronLeft />
+            </button>
+            <h2 className="text-2xl font-bold text-stone-900">好物推荐</h2>
+          </div>
+
+          {/* 表单 */}
+          <div className="bg-white rounded-2xl p-5 shadow-sm mb-4">
+            {/* 租期 */}
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-stone-700 mb-2">
+                租期：{rentMonths} 个月
+              </label>
+              <input
+                type="range"
+                min="1"
+                max="36"
+                value={rentMonths}
+                onChange={(e) => setRentMonths(parseInt(e.target.value))}
+                className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+              />
+              <div className="flex justify-between text-xs text-stone-400 mt-1">
+                <span>1个月</span>
+                <span>36个月</span>
+              </div>
+            </div>
+
+            {/* 房型 */}
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-stone-700 mb-2">房型</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: 'shared', label: '合租单间' },
+                  { id: 'single', label: '整租一居' },
+                  { id: 'double', label: '整租两居+' },
+                ].map((type) => (
+                  <button
+                    key={type.id}
+                    onClick={() => setRoomType(type.id)}
+                    className={`py-2 px-4 rounded-xl text-sm font-medium btn-press ${
+                      roomType === type.id
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-stone-100 text-stone-700'
+                    }`}
+                  >
+                    {type.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 预算 */}
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-stone-700 mb-2">
+                月预算：¥{budget}
+              </label>
+              <input
+                type="range"
+                min="500"
+                max="10000"
+                step="100"
+                value={budget}
+                onChange={(e) => setBudget(parseInt(e.target.value))}
+                className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+              />
+              <div className="flex justify-between text-xs text-stone-400 mt-1">
+                <span>¥500</span>
+                <span>¥10000</span>
+              </div>
+            </div>
+
+            {/* 生活习惯 */}
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-stone-700 mb-2">生活习惯</label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {allHabits.map((habit) => (
+                  <button
+                    key={habit.id}
+                    onClick={() => toggleHabit(habit.id)}
+                    className={`py-2 px-4 rounded-full text-sm font-medium btn-press ${
+                      habits.includes(habit.id)
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-stone-100 text-stone-700'
+                    }`}
+                  >
+                    {habit.icon} {habit.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={customHabitInput}
+                  onChange={(e) => setCustomHabitInput(e.target.value)}
+                  placeholder="添加自定义习惯..."
+                  className="flex-1 py-2 px-3 rounded-lg border border-stone-200 text-sm focus:outline-none focus:border-emerald-500"
+                  onKeyPress={(e) => e.key === 'Enter' && addCustomHabit()}
+                />
+                <button
+                  onClick={addCustomHabit}
+                  className="py-2 px-4 bg-stone-100 text-stone-700 rounded-lg text-sm font-medium btn-press"
+                >
+                  添加
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 生成按钮 */}
+          <button
+            onClick={handleGenerate}
+            disabled={loading}
+            className="w-full bg-emerald-500 text-white py-4 rounded-2xl font-semibold text-lg btn-press disabled:opacity-50 mb-4"
+          >
+            {loading ? '生成中...' : '生成推荐'}
+          </button>
+
+          {/* 加载骨架屏 */}
+          {loading && (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-2xl p-5 shimmer h-20"></div>
+              ))}
+            </div>
+          )}
+
+          {/* 推荐结果 */}
+          {recommendations && !loading && (
+            <div className="space-y-6 fade-in">
+              {/* 必买区 */}
+              <div>
+                <div className="flex items-center mb-3">
+                  <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center mr-2">
+                    <IconCheck />
+                  </div>
+                  <h3 className="font-semibold text-stone-900">必买区</h3>
+                </div>
+                <div className="space-y-2">
+                  {recommendations.mustBuy.map((item, index) => (
+                    <div
+                      key={index}
+                      className="bg-emerald-50 rounded-2xl p-4 card-hover"
+                      style={{ animationDelay: `${index * 0.08}s` }}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-3">
+                          <span className="text-2xl">{item.emoji}</span>
+                          <div>
+                            <div className="font-medium text-stone-900">{item.name}</div>
+                            <div className="text-xs text-stone-500 mt-1">{item.reason}</div>
+                          </div>
+                        </div>
+                        <div className="text-emerald-600 font-semibold">¥{item.price}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 可买区 */}
+              <div>
+                <div className="flex items-center mb-3">
+                  <div className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center mr-2 text-white text-xs">
+                    ?
+                  </div>
+                  <h3 className="font-semibold text-stone-900">可买区</h3>
+                </div>
+                <div className="space-y-2">
+                  {recommendations.maybeBuy.map((item, index) => (
+                    <div
+                      key={index}
+                      className="bg-amber-50 rounded-2xl p-4 card-hover"
+                      style={{ animationDelay: `${index * 0.08}s` }}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-3">
+                          <span className="text-2xl">{item.emoji}</span>
+                          <div>
+                            <div className="font-medium text-stone-900">{item.name}</div>
+                            <div className="text-xs text-stone-500 mt-1">{item.reason}</div>
+                          </div>
+                        </div>
+                        <div className="text-amber-600 font-semibold">¥{item.price}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 避雷区 */}
+              <div>
+                <div className="flex items-center mb-3">
+                  <div className="w-6 h-6 bg-rose-500 rounded-full flex items-center justify-center mr-2 text-white text-xs">
+                    ✕
+                  </div>
+                  <h3 className="font-semibold text-stone-900">避雷区</h3>
+                </div>
+                <div className="space-y-2">
+                  {recommendations.avoid.map((item, index) => (
+                    <div
+                      key={index}
+                      className="bg-rose-50 rounded-2xl p-4 card-hover"
+                      style={{ animationDelay: `${index * 0.08}s` }}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-3">
+                          <span className="text-2xl">{item.emoji}</span>
+                          <div>
+                            <div className="font-medium text-stone-900">{item.name}</div>
+                            <div className="text-xs text-stone-500 mt-1">{item.reason}</div>
+                          </div>
+                        </div>
+                        <div className="text-rose-600 font-semibold line-through">¥{item.price}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ==================== 买or租决策页面 ====================
+    function BuyOrRentPage({ setCurrentView }) {
+      const [selectedItems, setSelectedItems] = useState([]);
+      const [customItems, setCustomItems] = useState([]);
+      const [customItemInput, setCustomItemInput] = useState('');
+      const [usagePerYear, setUsagePerYear] = useState(10);
+      const [result, setResult] = useState(null);
+      const [loading, setLoading] = useState(false);
+
+      const defaultItems = [
+        { id: 'projector', name: '投影仪', emoji: '💡', buyPrice: 3000, rentPrice: 80 },
+        { id: 'drill', name: '电钻', emoji: '🔩', buyPrice: 500, rentPrice: 30 },
+        { id: 'tent', name: '帐篷', emoji: '⛺', buyPrice: 800, rentPrice: 50 },
+        { id: 'suitcase', name: '行李箱', emoji: '🧳', buyPrice: 600, rentPrice: 20 },
+        { id: 'massage', name: '按摩椅', emoji: '💆', buyPrice: 5000, rentPrice: 200 },
+        { id: 'dryer', name: '烘干机', emoji: '🌀', buyPrice: 3000, rentPrice: 100 },
+      ];
+
+      const allItems = [...defaultItems, ...customItems.map(item => ({
+        id: item.name,
+        name: item.name,
+        emoji: item.emoji,
+        buyPrice: item.buyPrice,
+        rentPrice: item.rentPrice
+      }))];
+
+      const toggleItem = (id) => {
+        setSelectedItems(prev =>
+          prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+      };
+
+      const addCustomItem = () => {
+        if (customItemInput.name && customItemInput.buyPrice && customItemInput.rentPrice) {
+          setCustomItems([...customItems, { ...customItemInput, id: customItemInput.name }]);
+          setSelectedItems([...selectedItems, customItemInput.name]);
+          setCustomItemInput({ name: '', emoji: '📦', buyPrice: 0, rentPrice: 0 });
+        }
+      };
+
+      const calculateResult = () => {
+        if (selectedItems.length === 0) return;
+
+        setLoading(true);
+        setTimeout(() => {
+          const items = selectedItems.map(id => allItems.find(item => item.id === id));
+          
+          const results = items.map(item => {
+            const costPerUse = item.buyPrice / (usagePerYear * 3); // 3年摊销
+            const yearlyRentCost = item.rentPrice * usagePerYear;
+            const threeYearRentCost = yearlyRentCost * 3;
+            
+            let recommendation = '';
+            let reason = '';
+            
+            if (usagePerYear < 20) {
+              recommendation = 'rent';
+              reason = `使用频率较低（${usagePerYear}次/年），租用更划算。三年下来比购买省${Math.floor(item.buyPrice - threeYearRentCost)}元。`;
+            } else if (usagePerYear > 50) {
+              recommendation = 'buy';
+              reason = `使用频率高（${usagePerYear}次/年），购买性价比更高。三年可省${Math.floor(threeYearRentCost - item.buyPrice)}元。`;
+            } else {
+              // 中间频率，根据具体物品判断
+              if (costPerUse < item.rentPrice) {
+                recommendation = 'buy';
+                reason = `每次使用成本¥${costPerUse.toFixed(1)}，低于租用价格¥${item.rentPrice}，建议购买。`;
+              } else {
+                recommendation = 'rent';
+                reason = `每次使用成本¥${costPerUse.toFixed(1)}，高于租用价格¥${item.rentPrice}，建议租用。`;
+              }
+            }
+
+            return {
+              ...item,
+              costPerUse,
+              yearlyRentCost,
+              threeYearRentCost,
+              recommendation,
+              reason
+            };
+          });
+
+          setResult(results);
+          setLoading(false);
+        }, 1500);
+      };
+
+      return (
+        <div className="fade-in">
+          {/* 头部 */}
+          <div className="flex items-center mb-6">
+            <button onClick={() => setCurrentView('home')} className="mr-3 text-stone-400 btn-press">
+              <IconChevronLeft />
+            </button>
+            <h2 className="text-2xl font-bold text-stone-900">买or租</h2>
+          </div>
+
+          {/* 提示 */}
+          <div className="bg-amber-50 rounded-2xl p-4 mb-4">
+            <p className="text-sm text-amber-800">💡 这些大件，买了可能吃灰，你看怎么选？</p>
+          </div>
+
+          {/* 物品选择 */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-stone-700 mb-2">选择物品</label>
+            <div className="grid grid-cols-3 gap-2 mb-2">
+              {allItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => toggleItem(item.id)}
+                  className={`p-3 rounded-xl text-center btn-press ${
+                    selectedItems.includes(item.id)
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-white text-stone-700'
+                  }`}
+                >
+                  <div className="text-2xl mb-1">{item.emoji}</div>
+                  <div className="text-xs">{item.name}</div>
+                </button>
+              ))}
+            </div>
+            
+            {/* 添加自定义物品 */}
+            <div className="bg-white rounded-2xl p-4 mt-3">
+              <div className="text-sm text-stone-600 mb-2">添加自定义物品</div>
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                <input
+                  type="text"
+                  placeholder="物品名称"
+                  value={customItemInput.name || ''}
+                  onChange={(e) => setCustomItemInput({...customItemInput, name: e.target.value})}
+                  className="py-2 px-3 rounded-lg border border-stone-200 text-sm focus:outline-none focus:border-emerald-500"
+                />
+                <input
+                  type="number"
+                  placeholder="Emoji"
+                  value={customItemInput.emoji || '📦'}
+                  onChange={(e) => setCustomItemInput({...customItemInput, emoji: e.target.value})}
+                  className="py-2 px-3 rounded-lg border border-stone-200 text-sm focus:outline-none focus:border-emerald-500"
+                />
+                <input
+                  type="number"
+                  placeholder="购买价格"
+                  value={customItemInput.buyPrice || ''}
+                  onChange={(e) => setCustomItemInput({...customItemInput, buyPrice: parseInt(e.target.value)})}
+                  className="py-2 px-3 rounded-lg border border-stone-200 text-sm focus:outline-none focus:border-emerald-500"
+                />
+                <input
+                  type="number"
+                  placeholder="单次租用价格"
+                  value={customItemInput.rentPrice || ''}
+                  onChange={(e) => setCustomItemInput({...customItemInput, rentPrice: parseInt(e.target.value)})}
+                  className="py-2 px-3 rounded-lg border border-stone-200 text-sm focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              <button
+                onClick={addCustomItem}
+                className="w-full py-2 bg-stone-100 text-stone-700 rounded-lg text-sm font-medium btn-press"
+              >
+                添加物品
+              </button>
+            </div>
+          </div>
+
+          {/* 使用频率 */}
+          <div className="bg-white rounded-2xl p-5 shadow-sm mb-4">
+            <label className="block text-sm font-medium text-stone-700 mb-2">
+              预计一年用多少次：{usagePerYear} 次
+            </label>
+            <input
+              type="range"
+              min="1"
+              max="100"
+              value={usagePerYear}
+              onChange={(e) => setUsagePerYear(parseInt(e.target.value))}
+              className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+            />
+            <div className="flex justify-between text-xs text-stone-400 mt-1">
+              <span>1次</span>
+              <span>100次</span>
+            </div>
+          </div>
+
+          {/* 计算按钮 */}
+          <button
+            onClick={calculateResult}
+            disabled={loading || selectedItems.length === 0}
+            className="w-full bg-emerald-500 text-white py-4 rounded-2xl font-semibold text-lg btn-press disabled:opacity-50 mb-4"
+          >
+            {loading ? '计算中...' : '帮我算算'}
+          </button>
+
+          {/* 加载骨架屏 */}
+          {loading && (
+            <div className="space-y-3">
+              {[1, 2].map((i) => (
+                <div key={i} className="bg-white rounded-2xl p-5 shimmer h-40"></div>
+              ))}
+            </div>
+          )}
+
+          {/* 结果 */}
+          {result && !loading && (
+            <div className="space-y-4 fade-in">
+              {result.map((item, index) => (
+                <div key={index} className="bg-white rounded-2xl p-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-2xl">{item.emoji}</span>
+                      <span className="font-semibold text-stone-900">{item.name}</span>
+                    </div>
+                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      item.recommendation === 'buy' 
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-amber-100 text-amber-700'
+                    }`}>
+                      {item.recommendation === 'buy' ? '建议购买' : '建议租用'}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="bg-stone-50 rounded-xl p-3">
+                      <div className="text-xs text-stone-500 mb-1">购买方案</div>
+                      <div className="text-lg font-bold text-stone-900">¥{item.buyPrice}</div>
+                      <div className="text-xs text-stone-400 mt-1">
+                        3年摊销 ¥{(item.buyPrice / 3).toFixed(0)}/年
+                      </div>
+                      <div className="text-xs text-stone-400">
+                        每次成本 ¥{item.costPerUse.toFixed(1)}
+                      </div>
+                    </div>
+                    <div className="bg-stone-50 rounded-xl p-3">
+                      <div className="text-xs text-stone-500 mb-1">租用方案</div>
+                      <div className="text-lg font-bold text-stone-900">¥{item.rentPrice}/次</div>
+                      <div className="text-xs text-stone-400 mt-1">
+                        年度成本 ¥{item.yearlyRentCost}
+                      </div>
+                      <div className="text-xs text-stone-400">
+                        3年成本 ¥{item.threeYearRentCost}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-sm text-stone-600 bg-stone-50 rounded-xl p-3">
+                    {item.reason}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ==================== 搬家转卖页面 ====================
+    function MovingPage({ setCurrentView }) {
+      const [itemName, setItemName] = useState('');
+      const [originalPrice, setOriginalPrice] = useState('');
+      const [usedMonths, setUsedMonths] = useState('');
+      const [condition, setCondition] = useState(7);
+      const [tone, setTone] = useState('casual');
+      const [result, setResult] = useState(null);
+      const [loading, setLoading] = useState(false);
+
+      const tones = [
+        { id: 'passionate', label: '🔥 热情版' },
+        { id: 'casual', label: '🧘 佛系版' },
+        { id: 'professional', label: '📋 专业版' },
+      ];
+
+      const generateCopy = () => {
+        if (!itemName || !originalPrice || !usedMonths) return;
+
+        setLoading(true);
+        setTimeout(() => {
+          // 计算建议价格（原价的40-70%，根据成色）
+          const depreciation = condition / 10;
+          const suggestedPrice = Math.floor(originalPrice * (0.4 + depreciation * 0.3));
+
+          let title = '';
+          let content = '';
+          const tags = [];
+
+          // 生成标签
+          if (condition >= 8) tags.push('成色极新');
+          else if (condition >= 6) tags.push('成色良好');
+          else tags.push('成色一般');
+          
+          tags.push(`${usedMonths}个月前购入`);
+          tags.push('搬家急出');
+          tags.push('诚心转让');
+          tags.push('可小刀');
+
+          // 根据语气生成文案
+          if (tone === 'passionate') {
+            title = `姐妹们！血亏转让${itemName}！`;
+            content = `✨【${itemName}】搬家带不走，含泪转让！
+💰原价${originalPrice}元，现在只要${suggestedPrice}元！
+📦自用${usedMonths}个月，${condition}成新
+❤️功能完好，保养得很好
+🏃‍♀️搬家急出，手慢无！
+💌有意私聊，可小刀！
+#二手好物 #搬家清仓 #血亏转让`;
+          } else if (tone === 'casual') {
+            title = `${itemName}，${condition}成新`;
+            content = `${itemName}，自用${usedMonths}个月，${condition}成新
+搬家带不走，有缘人来
+原价${originalPrice}，现${suggestedPrice}
+`;
+          } else {
+            title = `【转让】${itemName} | ${condition}成新`;
+            content = `物品名称：${itemName}
+购入价格：¥${originalPrice}
+使用时长：${usedMonths}个月
+成色说明：${condition}成新，功能完好
+转让原因：搬家无法带走
+转让价格：¥${suggestedPrice}
+
+实物照片已上传，所见即所得。
+支持当面交易验货，满意再付款。
+有需要请联系，非诚勿扰。`;
+          }
+
+          setResult({
+            title,
+            content,
+            suggestedPrice,
+            tags
+          });
+          setLoading(false);
+        }, 1500);
+      };
+
+      const CopyButton = ({ content, title }) => {
+        const [copied, setCopied] = useState(false);
+
+        const handleCopy = () => {
+          navigator.clipboard.writeText(content);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        };
+
+        return (
+          <button
+            onClick={handleCopy}
+            className={`flex items-center space-x-1 px-3 py-1 rounded-lg text-sm btn-press ${
+              copied
+                ? 'bg-emerald-100 text-emerald-700'
+                : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+            }`}
+          >
+            {copied ? (
+              <>
+                <IconCheck />
+                <span>已复制</span>
+              </>
+            ) : (
+              <>
+                <IconCopy />
+                <span>复制</span>
+              </>
+            )}
+          </button>
+        );
+      };
+
+      return (
+        <div className="fade-in">
+          {/* 头部 */}
+          <div className="flex items-center mb-6">
+            <button onClick={() => setCurrentView('home')} className="mr-3 text-stone-400 btn-press">
+              <IconChevronLeft />
+            </button>
+            <h2 className="text-2xl font-bold text-stone-900">搬家转卖</h2>
+          </div>
+
+          {/* 表单 */}
+          <div className="bg-white rounded-2xl p-5 shadow-sm mb-4">
+            {/* 物品名 */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-stone-700 mb-2">物品名</label>
+              <input
+                type="text"
+                value={itemName}
+                onChange={(e) => setItemName(e.target.value)}
+                placeholder="例如：小米台灯"
+                className="w-full py-2 px-3 rounded-lg border border-stone-200 text-sm focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            {/* 原价 */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-stone-700 mb-2">原价（元）</label>
+              <input
+                type="number"
+                value={originalPrice}
+                onChange={(e) => setOriginalPrice(e.target.value)}
+                placeholder="例如：299"
+                className="w-full py-2 px-3 rounded-lg border border-stone-200 text-sm focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            {/* 使用月数 */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-stone-700 mb-2">使用月数</label>
+              <input
+                type="number"
+                value={usedMonths}
+                onChange={(e) => setUsedMonths(e.target.value)}
+                placeholder="例如：12"
+                className="w-full py-2 px-3 rounded-lg border border-stone-200 text-sm focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            {/* 成色 */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-stone-700 mb-2">
+                成色：{condition} / 10
+              </label>
+              <input
+                type="range"
+                min="1"
+                max="10"
+                value={condition}
+                onChange={(e) => setCondition(parseInt(e.target.value))}
+                className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+              />
+              <div className="flex justify-between text-xs text-stone-400 mt-1">
+                <span>较差</span>
+                <span>全新</span>
+              </div>
+            </div>
+
+            {/* 语气选择 */}
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-2">文案风格</label>
+              <div className="grid grid-cols-3 gap-2">
+                {tones.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setTone(t.id)}
+                    className={`py-2 px-3 rounded-xl text-sm font-medium btn-press ${
+                      tone === t.id
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-stone-100 text-stone-700'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 生成按钮 */}
+          <button
+            onClick={generateCopy}
+            disabled={loading || !itemName || !originalPrice || !usedMonths}
+            className="w-full bg-emerald-500 text-white py-4 rounded-2xl font-semibold text-lg btn-press disabled:opacity-50 mb-4"
+          >
+            {loading ? '生成中...' : '生成文案'}
+          </button>
+
+          {/* 加载骨架屏 */}
+          {loading && (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-2xl p-5 shimmer h-20"></div>
+              ))}
+            </div>
+          )}
+
+          {/* 结果 */}
+          {result && !loading && (
+            <div className="space-y-3 fade-in">
+              {/* 标题 */}
+              <div className="bg-white rounded-2xl p-4 shadow-sm">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-stone-600">标题</span>
+                  <CopyButton content={result.title} title="标题" />
+                </div>
+                <div className="font-medium text-stone-900">{result.title}</div>
+              </div>
+
+              {/* 正文 */}
+              <div className="bg-white rounded-2xl p-4 shadow-sm">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-stone-600">正文</span>
+                  <CopyButton content={result.content} title="正文" />
+                </div>
+                <div className="text-sm text-stone-900 whitespace-pre-wrap">{result.content}</div>
+              </div>
+
+              {/* 建议价格 */}
+              <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-2xl p-5 text-white">
+                <div className="text-sm opacity-90 mb-1">建议售价</div>
+                <div className="text-3xl font-bold">¥{result.suggestedPrice}</div>
+              </div>
+
+              {/* 推荐标签 */}
+              <div className="bg-white rounded-2xl p-4 shadow-sm">
+                <div className="text-sm text-stone-600 mb-2">推荐标签</div>
+                <div className="flex flex-wrap gap-2">
+                  {result.tags.map((tag, index) => (
+                    <span
+                      key={index}
+                      className="px-3 py-1 bg-stone-100 text-stone-700 rounded-full text-sm"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ==================== 渲染应用 ====================
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
