@@ -173,7 +173,7 @@
 
     // ==================== 状态管理 ====================
     let currentView = 'home';
-    let recommendState = { rentMonths: 12, roomType: 'shared', budget: 3000, habits: ['做饭'], showResults: false, loading: false, customItems: [] };
+    let recommendState = { rentMonths: 12, roomTags: ['合租', '公共卫生间'], budget: 3000, habits: ['做饭'], customHabits: [], showResults: false, loading: false, customItems: [] };
     let buyOrRentState = { selectedItem: null, useCount: 20, showResult: false };
     let movingState = { itemName: '', originalPrice: '', useMonths: '', condition: 8, tone: 'casual', showResult: false, copied: { title: false, body: false } };
 
@@ -310,8 +310,8 @@
 
         // 合并自定义物品
         recommendState.customItems.forEach(item => {
-          if (item.type === 'must') mustBuy.push(item);
-          else if (item.type === 'optional') optional.push(item);
+          if (item.mustBuy) mustBuy.push(item);
+          else if (item.optional) optional.push(item);
         });
 
         const mustBuyTotal = mustBuy.reduce((sum, item) => sum + item.price, 0);
@@ -443,15 +443,61 @@
           </div>
 
           <div class="bg-white rounded-2xl p-5 mb-4 shadow-sm border border-stone-100">
-            <label class="block text-sm font-medium text-stone-700 mb-3">房型</label>
-            <div class="grid grid-cols-3 gap-2">
-              ${[{id:'shared',label:'合租单间',desc:'共享厨卫'},{id:'studio',label:'整租一居',desc:'独立空间'},{id:'apartment',label:'整租两居+',desc:'宽敞舒适'}].map(type => `
-                <button onclick="updateRoomType('${type.id}')" class="p-3 rounded-xl text-center btn-press ${recommendState.roomType === type.id ? 'bg-primary-500 text-white shadow-md shadow-primary-200' : 'bg-stone-50 text-stone-600 hover:bg-stone-100'}">
-                  <div class="text-sm font-semibold">${type.label}</div>
-                  <div class="text-xs mt-1 ${recommendState.roomType === type.id ? 'text-primary-100' : 'text-stone-400'}">${type.desc}</div>
-                </button>
-              `).join('')}
+            <label class="block text-sm font-medium text-stone-700 mb-3">房型配置（多选）</label>
+            <div class="space-y-3">
+              <div>
+                <div class="text-xs text-stone-400 mb-2 font-medium">租赁方式</div>
+                <div class="flex flex-wrap gap-2">
+                  ${['合租', '整租'].map(tag => `
+                    <button onclick="toggleRoomTag('${tag}')" class="tag px-4 py-2 rounded-xl text-sm border font-medium ${recommendState.roomTags.includes(tag) ? 'selected' : 'bg-white text-stone-600 border-stone-200'}">${tag}</button>
+                  `).join('')}
+                </div>
+              </div>
+              <div>
+                <div class="text-xs text-stone-400 mb-2 font-medium">卫生间</div>
+                <div class="flex flex-wrap gap-2">
+                  ${['独卫', '公共卫生间'].map(tag => `
+                    <button onclick="toggleRoomTag('${tag}')" class="tag px-4 py-2 rounded-xl text-sm border font-medium ${recommendState.roomTags.includes(tag) ? 'selected' : 'bg-white text-stone-600 border-stone-200'}">${tag}</button>
+                  `).join('')}
+                </div>
+              </div>
+              <div>
+                <div class="text-xs text-stone-400 mb-2 font-medium">朝向 / 采光</div>
+                <div class="flex flex-wrap gap-2">
+                  ${['朝南', '朝北', '朝东', '朝西'].map(tag => `
+                    <button onclick="toggleRoomTag('${tag}')" class="tag px-4 py-2 rounded-xl text-sm border font-medium ${recommendState.roomTags.includes(tag) ? 'selected' : 'bg-white text-stone-600 border-stone-200'}">${tag}</button>
+                  `).join('')}
+                </div>
+              </div>
+              <div>
+                <div class="text-xs text-stone-400 mb-2 font-medium">房间数</div>
+                <div class="flex flex-wrap gap-2">
+                  ${['单间', '一居室', '两居室+'].map(tag => `
+                    <button onclick="toggleRoomTag('${tag}')" class="tag px-4 py-2 rounded-xl text-sm border font-medium ${recommendState.roomTags.includes(tag) ? 'selected' : 'bg-white text-stone-600 border-stone-200'}">${tag}</button>
+                  `).join('')}
+                </div>
+              </div>
             </div>
+            ${recommendState.roomTags.includes('朝北') || recommendState.roomTags.includes('朝西') ? `
+              <div class="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-100">
+                <div class="flex items-start">
+                  <span class="text-lg mr-2">💡</span>
+                  <div class="text-xs text-amber-700 leading-relaxed">
+                    <strong>采光建议：</strong>房间采光一般，建议购买<strong>落地灯</strong>和<strong>台灯</strong>补充照明，同时选择<strong>浅色窗帘</strong>让自然光更充分。晴天时尽量拉开窗帘，利用反射光增加室内亮度。
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+            ${recommendState.roomTags.includes('朝南') ? `
+              <div class="mt-3 p-3 rounded-xl bg-primary-50 border border-primary-100">
+                <div class="flex items-start">
+                  <span class="text-lg mr-2">☀️</span>
+                  <div class="text-xs text-primary-700 leading-relaxed">
+                    <strong>采光优秀：</strong>房间朝南采光好，白天自然光充足。建议配备<strong>遮光窗帘</strong>保证睡眠质量，同时可以养一些<strong>喜光植物</strong>增添生气。
+                  </div>
+                </div>
+              </div>
+            ` : ''}
           </div>
 
           <div class="bg-white rounded-2xl p-5 mb-4 shadow-sm border border-stone-100">
@@ -463,38 +509,55 @@
 
           <div class="bg-white rounded-2xl p-5 mb-4 shadow-sm border border-stone-100">
             <label class="block text-sm font-medium text-stone-700 mb-3">生活习惯（多选）</label>
-            <div class="flex flex-wrap gap-2 mb-4">
+            <div class="flex flex-wrap gap-2 mb-3">
               ${habitOptions.map(habit => `
                 <button onclick="toggleHabit('${habit.id}')" class="tag px-4 py-2.5 rounded-xl text-sm border font-medium ${recommendState.habits.includes(habit.id) ? 'selected' : 'bg-white text-stone-600 border-stone-200'}">
                   <span class="mr-1">${habit.icon}</span>${habit.label}
                 </button>
               `).join('')}
             </div>
+            <div class="flex gap-2">
+              <input type="text" id="customHabitInput" placeholder="添加自定义习惯，如：养花、摄影..." class="flex-1 px-4 py-2.5 rounded-xl border border-stone-200 text-sm focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100">
+              <button onclick="addCustomHabit()" class="btn-press px-4 py-2.5 bg-stone-100 text-stone-700 rounded-xl text-sm font-semibold hover:bg-stone-200">添加</button>
+            </div>
+            ${recommendState.customHabits.length > 0 ? `
+              <div class="flex flex-wrap gap-2 mt-3">
+                ${recommendState.customHabits.map((habit, i) => `
+                  <span class="inline-flex items-center px-3 py-1.5 rounded-xl bg-primary-50 text-primary-700 text-sm font-medium border border-primary-100">
+                    ${habit}
+                    <button onclick="removeCustomHabit(${i})" class="ml-1.5 text-primary-400 hover:text-primary-600">✕</button>
+                  </span>
+                `).join('')}
+              </div>
+            ` : ''}
           </div>
 
           <div class="bg-white rounded-2xl p-5 mb-6 shadow-sm border border-stone-100">
             <label class="block text-sm font-medium text-stone-700 mb-3">添加自定义物品</label>
-            <div class="flex gap-2 mb-2">
-              <input type="text" id="customItemName" placeholder="物品名称，如：电暖器" class="flex-1 px-4 py-3 rounded-xl border border-stone-200 text-sm focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100">
-              <input type="number" id="customItemPrice" placeholder="价格" class="w-24 px-4 py-3 rounded-xl border border-stone-200 text-sm focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100">
-            </div>
-            <div class="flex gap-2 mb-3">
-              <select id="customItemType" class="flex-1 px-4 py-3 rounded-xl border border-stone-200 text-sm focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100">
-                <option value="must">必买</option>
-                <option value="optional">可选</option>
-              </select>
-              <button onclick="addCustomItem()" class="btn-press px-5 py-3 bg-primary-500 text-white rounded-xl text-sm font-semibold hover:bg-primary-600">添加</button>
+            <div class="space-y-2">
+              <div class="flex gap-2">
+                <input type="text" id="customItemName" placeholder="物品名称，如：电暖器" class="flex-1 min-w-0 px-4 py-3 rounded-xl border border-stone-200 text-sm focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100">
+                <input type="number" id="customItemPrice" placeholder="价格" class="w-24 flex-shrink-0 px-4 py-3 rounded-xl border border-stone-200 text-sm focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100">
+              </div>
+              <div class="flex gap-2">
+                <select id="customItemType" class="flex-1 min-w-0 px-4 py-3 rounded-xl border border-stone-200 text-sm focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 bg-white">
+                  <option value="must">必买清单</option>
+                  <option value="optional">可选清单</option>
+                </select>
+                <button onclick="addCustomItem()" class="btn-press flex-shrink-0 px-5 py-3 bg-primary-500 text-white rounded-xl text-sm font-semibold hover:bg-primary-600">添加</button>
+              </div>
             </div>
             ${recommendState.customItems.length > 0 ? `
-              <div class="space-y-2 mt-3">
+              <div class="space-y-2 mt-4">
                 ${recommendState.customItems.map((item, i) => `
-                  <div class="flex items-center justify-between p-3 rounded-xl bg-stone-50 border border-stone-100">
-                    <div class="flex items-center">
-                      <span class="text-xl mr-2">${item.emoji}</span>
-                      <span class="text-sm font-medium">${item.name}</span>
-                      <span class="text-xs text-stone-400 ml-2">¥${item.price}</span>
+                  <div class="flex items-center justify-between p-3 rounded-xl ${item.mustBuy ? 'bg-primary-50 border border-primary-100' : 'bg-amber-50 border border-amber-100'}">
+                    <div class="flex items-center min-w-0">
+                      <span class="text-xl mr-2 flex-shrink-0">${item.emoji}</span>
+                      <span class="text-sm font-medium truncate">${item.name}</span>
+                      <span class="text-xs text-stone-400 ml-2 flex-shrink-0">¥${item.price}</span>
+                      <span class="text-xs ${item.mustBuy ? 'text-primary-600' : 'text-amber-600'} ml-2 flex-shrink-0 font-medium">${item.mustBuy ? '必买' : '可选'}</span>
                     </div>
-                    <button onclick="removeCustomItem(${i})" class="text-stone-400 hover:text-rose-500 text-sm">删除</button>
+                    <button onclick="removeCustomItem(${i})" class="text-stone-400 hover:text-rose-500 text-sm flex-shrink-0 ml-2">删除</button>
                   </div>
                 `).join('')}
               </div>
@@ -801,10 +864,26 @@
 
     // ==================== 更新函数 ====================
     function updateRentMonths(value) { recommendState.rentMonths = Number(value); renderPage(); }
-    function updateRoomType(value) { recommendState.roomType = value; renderPage(); }
+    function toggleRoomTag(tag) {
+      recommendState.roomTags = recommendState.roomTags.includes(tag) ? recommendState.roomTags.filter(t => t !== tag) : [...recommendState.roomTags, tag];
+      renderPage();
+    }
     function updateBudget(value) { recommendState.budget = Number(value); renderPage(); }
     function toggleHabit(habitId) {
       recommendState.habits = recommendState.habits.includes(habitId) ? recommendState.habits.filter(h => h !== habitId) : [...recommendState.habits, habitId];
+      renderPage();
+    }
+    function addCustomHabit() {
+      const input = document.getElementById('customHabitInput');
+      const habit = input.value.trim();
+      if (habit && !recommendState.customHabits.includes(habit)) {
+        recommendState.customHabits.push(habit);
+        input.value = '';
+        renderPage();
+      }
+    }
+    function removeCustomHabit(index) {
+      recommendState.customHabits.splice(index, 1);
       renderPage();
     }
     function addCustomItem() {
@@ -828,7 +907,14 @@
       renderPage();
       setTimeout(() => { recommendState.loading = false; renderPage(); }, 1500);
     }
-    function recommendReset() { recommendState.showResults = false; recommendState.customItems = []; renderPage(); }
+    function recommendReset() {
+      recommendState.showResults = false;
+      recommendState.customItems = [];
+      recommendState.customHabits = [];
+      recommendState.roomTags = ['合租', '公共卫生间'];
+      recommendState.habits = ['做饭'];
+      renderPage();
+    }
 
     function selectBuyOrRentItem(itemId) {
       buyOrRentState.selectedItem = buyOrRentItems.find(i => i.id === itemId);
